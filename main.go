@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os/exec"
 
-	"github.com/rivo/tview"
+	"github.com/manifoldco/promptui"
 )
 
 var (
@@ -14,6 +14,7 @@ var (
 )
 
 func main() {
+	flag.Parse()
 	configs := listConfigs()
 	displayAndChooseConfig(configs)
 }
@@ -59,47 +60,35 @@ func useConfig(c gcloudConfig) []byte {
 }
 
 func displayAndChooseConfig(configs []gcloudConfig) {
-	app := tview.NewApplication()
-	list := tview.NewList()
-
-	selected := func(i int) {
-		b := useConfig(configs[i])
-		app.Stop()
-		fmt.Println(string(b))
-	}
-
-	shortcut := 'a'
+	var activeIndex int
 	for i, c := range configs {
-		i := i
-		activeText := ""
 		if c.IsActive {
-			activeText = " (active)"
-		}
-		secondaryText := fmt.Sprintf("Account: %s | Project: %s",
-			c.Properties.Core.Account, c.Properties.Core.Project)
-		if dp := c.Properties.ApiEndpointOverrides.Dataproc; dp != "" {
-			secondaryText = fmt.Sprintf("%s | Dataproc: %s", secondaryText, dp)
-		}
-		list.AddItem(
-			fmt.Sprintf("%s%s", c.Name, activeText),
-			secondaryText,
-			shortcut,
-			func() {
-				selected(i)
-			})
-		shortcut += 1
-		// 'q' is reserved for quit.
-		if shortcut == 'q' {
-			shortcut += 1
+			activeIndex = i
+			break
 		}
 	}
 
-	list.AddItem("Quit", "Press to exit", 'q', func() {
-		app.Stop()
-		fmt.Println("Exiting without changing configurations")
-	})
-
-	if err := app.SetRoot(list, true).Run(); err != nil {
-		panic(fmt.Errorf("running app: %w", err))
+	prompt := promptui.Select{
+		Label: "gcloud configuration",
+		Items: configs,
+		Templates: &promptui.SelectTemplates{
+			Active: "{{ .Name | cyan | underline }}" +
+				"{{ if .IsActive }} {{- \" (Active)\" | cyan | underline }} {{ end }}",
+			Inactive: "{{ .Name }}{{ if .IsActive }} {{- \" (Active)\" }} {{ end }}",
+			Details: "Account: {{ .Properties.Core.Account }}\t" +
+				"Project: {{ .Properties.Core.Project }}" +
+				"{{- if .Properties.ApiEndpointOverrides.Dataproc }} " +
+				"\tDataproc: {{ .Properties.ApiEndpointOverrides.Dataproc }} " +
+				"{{ end }}",
+		},
+		Size: len(configs),
+		HideSelected: true,
 	}
+	i, _, err := prompt.RunCursorAt(activeIndex, 0)
+	if err != nil {
+		fmt.Printf("Prompt failed: %v\n", err)
+		return
+	}
+	b := useConfig(configs[i])
+	fmt.Print(string(b))
 }
