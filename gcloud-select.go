@@ -7,6 +7,8 @@ import (
 	"os/exec"
 
 	"github.com/manifoldco/promptui"
+
+	_ "github.com/Harwayne/kubectl-select/pkg/removebell"
 )
 
 var (

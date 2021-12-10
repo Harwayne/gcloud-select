@@ -1,3 +1,6 @@
+# github.com/Harwayne/kubectl-select v0.0.0-20211210223323-a7bc7c0f66e6
+## explicit; go 1.17
+github.com/Harwayne/kubectl-select/pkg/removebell
 # github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
 ## explicit
 github.com/chzyer/readline
